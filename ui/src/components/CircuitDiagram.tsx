@@ -74,7 +74,9 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
 
   // paralelo
   const branchCount = resistances.length
-  const spacing = branchCount > 1 ? 360 / (branchCount - 1) : 0
+  const topY = 110
+  const bottomY = 210
+  const spacing = branchCount > 1 ? (bottomY - topY) / (branchCount - 1) : 0
 
   return (
     <svg viewBox="0 0 520 260" className="w-full max-w-3xl rounded-2xl bg-slate-900/70 p-4">
@@ -94,16 +96,16 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
         {t('circuit.parallel.branches', { count: branchCount })}
       </text>
 
-      <line x1="60" y1="80" x2="60" y2="220" stroke={colors.wire} strokeWidth="4" />
-      <line x1="480" y1="80" x2="480" y2="220" stroke={colors.wire} strokeWidth="4" />
-      <line x1="60" y1="80" x2="480" y2="80" stroke={colors.wire} strokeWidth="4" />
-      <line x1="60" y1="220" x2="480" y2="220" stroke={colors.wire} strokeWidth="4" />
+      <line x1="60" y1={topY - 30} x2="60" y2={bottomY + 30} stroke={colors.wire} strokeWidth="4" />
+      <line x1="480" y1={topY - 30} x2="480" y2={bottomY + 30} stroke={colors.wire} strokeWidth="4" />
+      <line x1="60" y1={topY - 30} x2="480" y2={topY - 30} stroke={colors.wire} strokeWidth="4" />
+      <line x1="60" y1={bottomY + 30} x2="480" y2={bottomY + 30} stroke={colors.wire} strokeWidth="4" />
 
       {resistances.map((res, index) => {
         const y =
           branchCount === 1
-            ? 150
-            : 80 + index * spacing
+            ? (topY + bottomY) / 2
+            : topY + index * spacing
         const current = currentValues[index] ?? NaN
         const arrow = current >= 0 ? 'url(#arrowPos)' : 'url(#arrowNeg)'
         const arrowColor = current >= 0 ? colors.currentPos : colors.currentNeg
