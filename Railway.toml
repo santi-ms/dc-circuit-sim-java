@@ -1,4 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd dc-circuit-sim-java && ./gradlew clean build -x test"
-startCommand = "cd dc-circuit-sim-java && java -Dserver.port=$PORT -jar $(ls build/libs/*-*.jar | head -n 1)"
+buildCommand = "cd dc-circuit-sim-java && chmod +x gradlew && ./gradlew clean build -x test"
+startCommand = "cd dc-circuit-sim-java && java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls build/libs/*.jar | head -n 1)"
+[build.env]
+NIXPACKS_SKIP_MISE = "1"
