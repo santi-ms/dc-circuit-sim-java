@@ -96,7 +96,16 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
         const arrowColor = current >= 0 ? colors.currentPos : colors.currentNeg
         return (
           <g key={index}>
-            <line x1="120" y1={y} x2="440" y2={y} stroke={colors.wire} strokeWidth="4" markerStart={arrow} markerEnd={arrow} stroke={arrowColor} />
+            <line
+              x1="120"
+              y1={y}
+              x2="440"
+              y2={y}
+              stroke={arrowColor}
+              strokeWidth="4"
+              markerStart={arrow}
+              markerEnd={arrow}
+            />
             <rect x="250" y={y - 20} width="60" height="40" fill="rgba(56,189,248,0.2)" stroke={colors.component} strokeWidth="3" rx="8" />
             <text x="280" y={y - 2} fill={colors.text} fontSize="12" textAnchor="middle">R{index + 1}</text>
             <text x="280" y={y + 14} fill={colors.text} fontSize="11" textAnchor="middle">{formatResistance(res)}</text>
