@@ -97,10 +97,14 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
 
   const barData = useMemo(() => {
     if (!metrics) return []
-    return Object.entries(metrics.byMethod ?? {}).map(([method, info]) => ({
-      method,
-      tiempo: Number(info.avgElapsedMs.toFixed(2))
-    }))
+    return Object.entries(metrics.byMethod ?? {}).map(([method, info]) => {
+      const avgElapsed =
+        typeof info.avgElapsedMs === 'number' ? info.avgElapsedMs : Number(info.avgElapsedMs ?? NaN)
+      return {
+        method,
+        tiempo: Number.isFinite(avgElapsed) ? parseFloat(avgElapsed.toFixed(2)) : 0
+      }
+    })
   }, [metrics])
 
   const lineData = useMemo(() => {
@@ -114,19 +118,44 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
   const schedulerSummary = useMemo(() => {
     if (!metrics) return []
     const entries = Object.entries(metrics.byScheduler ?? {})
-    return entries.map(([scheduler, info]) => ({
-      scheduler: scheduler.toUpperCase(),
-      avgElapsedMs: Number(info.avgElapsedMs.toFixed(2)),
-      avgWaitingMs: Number(info.avgWaitingMs.toFixed(2)),
-      avgTurnaroundMs: Number(info.avgTurnaroundMs.toFixed(2)),
-      throughputPerMinute: Number(info.throughputPerMinute.toFixed(2)),
-      avgCtxVoluntary: Number(info.avgCtxVoluntary.toFixed(2)),
-      avgCtxInvoluntary: Number(info.avgCtxInvoluntary.toFixed(2)),
-      avgIoReadBytes: Number(info.avgIoReadBytes.toFixed(2)),
-      avgIoWriteBytes: Number(info.avgIoWriteBytes.toFixed(2)),
-      avgResidual: Number.isFinite(info.avgResidual) ? Number(info.avgResidual.toExponential(3)) : NaN,
-      count: info.count
-    }))
+    return entries.map(([scheduler, info]) => {
+      const avgElapsed =
+        typeof info.avgElapsedMs === 'number' ? info.avgElapsedMs : Number(info.avgElapsedMs ?? NaN)
+      const avgWaiting =
+        typeof info.avgWaitingMs === 'number' ? info.avgWaitingMs : Number(info.avgWaitingMs ?? NaN)
+      const avgTurnaround =
+        typeof info.avgTurnaroundMs === 'number' ? info.avgTurnaroundMs : Number(info.avgTurnaroundMs ?? NaN)
+      const throughput =
+        typeof info.throughputPerMinute === 'number'
+          ? info.throughputPerMinute
+          : Number(info.throughputPerMinute ?? NaN)
+      const ctxVol =
+        typeof info.avgCtxVoluntary === 'number' ? info.avgCtxVoluntary : Number(info.avgCtxVoluntary ?? NaN)
+      const ctxInvol =
+        typeof info.avgCtxInvoluntary === 'number'
+          ? info.avgCtxInvoluntary
+          : Number(info.avgCtxInvoluntary ?? NaN)
+      const ioRead =
+        typeof info.avgIoReadBytes === 'number' ? info.avgIoReadBytes : Number(info.avgIoReadBytes ?? NaN)
+      const ioWrite =
+        typeof info.avgIoWriteBytes === 'number' ? info.avgIoWriteBytes : Number(info.avgIoWriteBytes ?? NaN)
+      const residual =
+        typeof info.avgResidual === 'number' ? info.avgResidual : Number(info.avgResidual ?? NaN)
+
+      return {
+        scheduler: scheduler.toUpperCase(),
+        avgElapsedMs: Number.isFinite(avgElapsed) ? parseFloat(avgElapsed.toFixed(2)) : NaN,
+        avgWaitingMs: Number.isFinite(avgWaiting) ? parseFloat(avgWaiting.toFixed(2)) : NaN,
+        avgTurnaroundMs: Number.isFinite(avgTurnaround) ? parseFloat(avgTurnaround.toFixed(2)) : NaN,
+        throughputPerMinute: Number.isFinite(throughput) ? parseFloat(throughput.toFixed(2)) : NaN,
+        avgCtxVoluntary: Number.isFinite(ctxVol) ? parseFloat(ctxVol.toFixed(2)) : NaN,
+        avgCtxInvoluntary: Number.isFinite(ctxInvol) ? parseFloat(ctxInvol.toFixed(2)) : NaN,
+        avgIoReadBytes: Number.isFinite(ioRead) ? parseFloat(ioRead.toFixed(2)) : NaN,
+        avgIoWriteBytes: Number.isFinite(ioWrite) ? parseFloat(ioWrite.toFixed(2)) : NaN,
+        avgResidual: Number.isFinite(residual) ? residual : NaN,
+        count: info.count
+      }
+    })
   }, [metrics])
 
   const exportCsv = () => {
