@@ -74,7 +74,7 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
 
   // paralelo
   const branchCount = resistances.length
-  const spacing = 360 / (branchCount + 1)
+  const spacing = branchCount > 1 ? 360 / (branchCount - 1) : 0
 
   return (
     <svg viewBox="0 0 520 260" className="w-full max-w-3xl rounded-2xl bg-slate-900/70 p-4">
@@ -100,7 +100,10 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
       <line x1="60" y1="220" x2="480" y2="220" stroke={colors.wire} strokeWidth="4" />
 
       {resistances.map((res, index) => {
-        const y = 80 + (index + 1) * spacing
+        const y =
+          branchCount === 1
+            ? 150
+            : 80 + index * spacing
         const current = currentValues[index] ?? NaN
         const arrow = current >= 0 ? 'url(#arrowPos)' : 'url(#arrowNeg)'
         const arrowColor = current >= 0 ? colors.currentPos : colors.currentNeg
