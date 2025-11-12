@@ -1,9 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "chmod +x gradlew && ./gradlew wrapper --gradle-version 8.7 && ./gradlew clean build -x test"
+buildCommand = "./gradlew clean build -x test"
 
-[start]
-command = "java -Dserver.port=$PORT -jar build/libs/*.jar"
-
-[variables]
-JAVA_VERSION = "21"
+[deploy]
+startCommand = "java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls build/libs/*-*.jar | head -n 1)"
