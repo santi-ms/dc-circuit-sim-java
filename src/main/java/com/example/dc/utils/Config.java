@@ -16,7 +16,7 @@ public final class Config {
             "complejo", 80
     );
 
-    public static final Path JOB_LOG_PATH = Path.of("data", "jobs_log.csv");
+    public static final Path JOB_LOG_PATH = resolveJobLogPath();
 
     private static final int PARALLELISM = computeParallelism();
 
@@ -45,5 +45,14 @@ public final class Config {
             }
         }
         return baseline;
+    }
+
+    private static Path resolveJobLogPath() {
+        String dir = System.getProperty("app.metrics.dir");
+        if (dir == null || dir.isBlank()) {
+            dir = System.getenv("METRICS_DIR");
+        }
+        Path base = (dir == null || dir.isBlank()) ? Path.of("data") : Path.of(dir);
+        return base.resolve("jobs_log.csv");
     }
 }
