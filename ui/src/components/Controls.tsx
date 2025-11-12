@@ -1,16 +1,6 @@
 import { motion } from 'framer-motion'
-
-const schedulers = [
-  { value: 'fcfs', label: 'FCFS' },
-  { value: 'rr', label: 'Round Robin' },
-  { value: 'sjf', label: 'SJF' }
-]
-
-const scenarios = [
-  { value: 'simple', label: 'Simple (3x3)' },
-  { value: 'medio', label: 'Medio (20x20)' },
-  { value: 'complejo', label: 'Complejo (80x80)' }
-]
+import { useMemo } from 'react'
+import { useI18n } from '../i18n'
 
 type ControlsProps = {
   scheduler: string
@@ -33,6 +23,26 @@ export function Controls({
   onOpenPhysical,
   disabled
 }: ControlsProps) {
+  const { t } = useI18n()
+
+  const schedulers = useMemo(
+    () => [
+      { value: 'fcfs', label: 'FCFS' },
+      { value: 'rr', label: 'Round Robin' },
+      { value: 'sjf', label: 'SJF' }
+    ],
+    []
+  )
+
+  const scenarios = useMemo(
+    () => [
+      { value: 'simple', label: t('scenario.simple') },
+      { value: 'medio', label: t('scenario.medio') },
+      { value: 'complejo', label: t('scenario.complejo') }
+    ],
+    [t]
+  )
+
   return (
     <motion.section
       className="card flex flex-col gap-4"
@@ -41,13 +51,13 @@ export function Controls({
       transition={{ duration: 0.3 }}
     >
       <header>
-        <h2 className="text-lg font-semibold text-emerald-300">Panel de control</h2>
-        <p className="text-sm text-slate-400">Selecciona planificador y escenario para ejecutar la simulacion.</p>
+        <h2 className="text-lg font-semibold text-emerald-300">{t('controls.title')}</h2>
+        <p className="text-sm text-slate-400">{t('controls.subtitle')}</p>
       </header>
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="text-slate-300">Planificador</span>
+          <span className="text-slate-300">{t('controls.scheduler')}</span>
           <select
             className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
             value={scheduler}
@@ -63,7 +73,7 @@ export function Controls({
         </label>
 
         <label className="flex flex-1 flex-col gap-1 text-sm">
-          <span className="text-slate-300">Escenario</span>
+          <span className="text-slate-300">{t('controls.scenario')}</span>
           <select
             className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white focus:border-emerald-500 focus:outline-none"
             value={scenario}
@@ -81,21 +91,21 @@ export function Controls({
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <button className="button-primary" onClick={onRun} disabled={disabled}>
-          {disabled ? 'Ejecutando...' : 'Ejecutar simulacion'}
+          {disabled ? t('controls.running') : t('controls.run')}
         </button>
         <button
           className="inline-flex items-center justify-center rounded-full border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-600/10"
           type="button"
           onClick={onOpenCustom}
         >
-          Carga personalizada
+          {t('controls.custom')}
         </button>
         <button
           className="inline-flex items-center justify-center rounded-full border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-700"
           type="button"
           onClick={onOpenPhysical}
         >
-          Circuito físico
+          {t('controls.physical')}
         </button>
       </div>
     </motion.section>

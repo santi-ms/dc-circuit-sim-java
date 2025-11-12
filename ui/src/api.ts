@@ -180,3 +180,8 @@ export const fetchMetricsJson = async () => {
   const data = await request<MetricsResponse | string>('/api/metrics')
   return typeof data === 'string' ? null : data
 }
+
+export const clearJobsLog = () =>
+  request<void>('/api/logs/jobs', {
+    method: 'DELETE'
+  })

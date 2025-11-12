@@ -1,4 +1,5 @@
 import React from 'react'
+import { useI18n } from '../i18n'
 
 type CircuitDiagramProps = {
   topology: 'serie' | 'paralelo'
@@ -30,6 +31,7 @@ function formatResistance(value: number) {
 }
 
 export function CircuitDiagram({ topology, voltage, resistances, currents }: CircuitDiagramProps) {
+  const { t } = useI18n()
   if (!resistances || resistances.length === 0) {
     return null
   }
@@ -47,8 +49,12 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
           </marker>
         </defs>
         <rect x="0" y="0" width="520" height="180" fill="transparent" stroke="rgba(148,163,184,0.2)" />
-        <text x="20" y="30" fill={colors.text} fontSize="14">Fuente DC: {voltage.toFixed(2)} V</text>
-        <text x="20" y="50" fill={colors.text} fontSize="12">Corriente: {formatCurrent(current)}</text>
+        <text x="20" y="30" fill={colors.text} fontSize="14">
+          {t('circuit.series.source', { voltage: voltage.toFixed(2) })}
+        </text>
+        <text x="20" y="50" fill={colors.text} fontSize="12">
+          {t('circuit.series.current', { current: formatCurrent(current) })}
+        </text>
 
         <line x1="60" y1="100" x2="480" y2="100" stroke={colors.wire} strokeWidth="4" markerEnd="url(#arrow)" />
 
@@ -81,8 +87,12 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
         </marker>
       </defs>
       <rect x="0" y="0" width="520" height="260" fill="transparent" stroke="rgba(148,163,184,0.2)" />
-      <text x="20" y="30" fill={colors.text} fontSize="14">Fuente DC: {voltage.toFixed(2)} V</text>
-      <text x="20" y="50" fill={colors.text} fontSize="12">Ramas: {branchCount}</text>
+      <text x="20" y="30" fill={colors.text} fontSize="14">
+        {t('circuit.series.source', { voltage: voltage.toFixed(2) })}
+      </text>
+      <text x="20" y="50" fill={colors.text} fontSize="12">
+        {t('circuit.parallel.branches', { count: branchCount })}
+      </text>
 
       <line x1="60" y1="80" x2="60" y2="220" stroke={colors.wire} strokeWidth="4" />
       <line x1="480" y1="80" x2="480" y2="220" stroke={colors.wire} strokeWidth="4" />
@@ -107,9 +117,18 @@ export function CircuitDiagram({ topology, voltage, resistances, currents }: Cir
               markerEnd={arrow}
             />
             <rect x="250" y={y - 20} width="60" height="40" fill="rgba(56,189,248,0.2)" stroke={colors.component} strokeWidth="3" rx="8" />
-            <text x="280" y={y - 2} fill={colors.text} fontSize="12" textAnchor="middle">R{index + 1}</text>
-            <text x="280" y={y + 14} fill={colors.text} fontSize="11" textAnchor="middle">{formatResistance(res)}</text>
-            <text x="460" y={y - 6} fill={colors.text} fontSize="11" textAnchor="end">{formatCurrent(current)}</text>
+            <text x="280" y={y - 2} fill={colors.text} fontSize="12" textAnchor="middle">
+              R{index + 1}
+            </text>
+            <text x="280" y={y + 14} fill={colors.text} fontSize="11" textAnchor="middle">
+              {formatResistance(res)}
+            </text>
+            <text x="460" y={y - 6} fill={colors.text} fontSize="11" textAnchor="end">
+              {t('circuit.parallel.current', {
+                current: formatCurrent(current),
+                direction: current >= 0 ? t('result.current.assumed') : t('result.current.reverse')
+              })}
+            </text>
           </g>
         )
       })}

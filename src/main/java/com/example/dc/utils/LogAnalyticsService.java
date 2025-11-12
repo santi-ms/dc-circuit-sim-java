@@ -129,6 +129,12 @@ public class LogAnalyticsService {
         return result;
     }
 
+    public void clearLog() throws IOException {
+        Path path = Config.JOB_LOG_PATH;
+        Files.createDirectories(path.getParent());
+        Files.deleteIfExists(path);
+    }
+
     private String normalizeScenario(String scenario) {
         if (scenario == null || scenario.isBlank() || "unknown".equalsIgnoreCase(scenario)) {
             return "unknown";

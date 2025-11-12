@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, LineChart, Line, ComposedChart } from 'recharts'
-import { fetchJobsCsv, fetchMetricsJson, MetricsResponse } from '../api'
-
-const scenarioLabels: Record<string, string> = {
-  simple: 'Simple',
-  medio: 'Medio',
-  complejo: 'Complejo',
-  unknown: 'Desconocido'
-}
+import { clearJobsLog, fetchJobsCsv, fetchMetricsJson, MetricsResponse } from '../api'
+import { useI18n } from '../i18n'
 
 type CsvEntry = {
   timestamp: string
@@ -64,9 +58,20 @@ function parseCsv(raw: string): CsvEntry[] {
 }
 
 export function AnalysisView({ onError }: AnalysisViewProps) {
+  const { t } = useI18n()
   const [csv, setCsv] = useState<string>('')
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null)
   const [selectedScenario, setSelectedScenario] = useState<string>('all')
+
+  const scenarioLabels = useMemo(
+    () => ({
+      simple: t('scenario.simple'),
+      medio: t('scenario.medio'),
+      complejo: t('scenario.complejo'),
+      unknown: t('scenario.unknown')
+    }),
+    [t]
+  )
 
   useEffect(() => {
     const load = async () => {
@@ -78,11 +83,11 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
         setCsv(csvData)
         setMetrics(metricsData)
       } catch (error) {
-        onError(error instanceof Error ? error.message : 'No se pudo cargar la informacion de analisis')
+        onError(error instanceof Error ? error.message : t('analysis.toast.error'))
       }
     }
     load()
-  }, [onError])
+  }, [onError, t])
 
   const rows = useMemo(() => parseCsv(csv), [csv])
   const filteredRows = useMemo(() => {
@@ -135,56 +140,84 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
     document.body.removeChild(link)
   }
 
+  const handleClearHistory = async () => {
+    if (!window.confirm(t('analysis.clear.confirm'))) {
+      return
+    }
+    try {
+      await clearJobsLog()
+      setCsv('')
+      setMetrics(null)
+      onError(t('analysis.clear.success'))
+    } catch (error) {
+      onError(error instanceof Error ? error.message : t('analysis.clear.error'))
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-emerald-200">Analisis de ejecucion</h1>
-          <p className="text-sm text-slate-400">Revisa historicos, tiempos promedio y consumo registrado.</p>
+          <h1 className="text-2xl font-semibold text-emerald-200">{t('analysis.title')}</h1>
+          <p className="text-sm text-slate-400">{t('analysis.subtitle')}</p>
         </div>
-        <button className="button-primary" onClick={exportCsv} disabled={!csv}>
-          Exportar CSV
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button className="rounded-full border border-slate-600 px-4 py-2 text-sm text-slate-200 transition hover:bg-slate-700" onClick={handleClearHistory} disabled={!csv && !metrics}>
+            {t('analysis.clear')}
+          </button>
+          <button className="button-primary" onClick={exportCsv} disabled={!csv}>
+            {t('analysis.export')}
+          </button>
+        </div>
       </header>
 
       <section className="card grid gap-4 sm:grid-cols-6">
         <div>
-          <p className="text-xs uppercase text-slate-400">Total de jobs</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.totalJobs')}</p>
           <p className="text-2xl font-bold text-white">{metrics?.totalJobs ?? 0}</p>
         </div>
         <div>
-          <p className="text-xs uppercase text-slate-400">Tiempo promedio (ms)</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.avgTime')}</p>
           <p className="text-2xl font-bold text-white">{metrics ? metrics.avgElapsedMs.toFixed(2) : '--'}</p>
         </div>
         <div>
-          <p className="text-xs uppercase text-slate-400">Espera promedio (ms)</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.avgWait')}</p>
           <p className="text-2xl font-bold text-white">{metrics ? metrics.avgWaitingMs.toFixed(2) : '--'}</p>
-          <p className="text-[10px] text-slate-500">Turnaround: {metrics ? metrics.avgTurnaroundMs.toFixed(2) : '--'} ms</p>
+          <p className="text-[10px] text-slate-500">
+            {t('analysis.metrics.turnaroundNote', { value: metrics ? metrics.avgTurnaroundMs.toFixed(2) : '--' })}
+          </p>
         </div>
         <div>
-          <p className="text-xs uppercase text-slate-400">CPU promedio (%)</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.avgCpu')}</p>
           <p className="text-2xl font-bold text-white">{metrics ? metrics.avgCpuPct.toFixed(2) : '--'}</p>
         </div>
         <div>
-          <p className="text-xs uppercase text-slate-400">Context switches</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.contextSwitches')}</p>
           <p className="text-2xl font-bold text-white">
             {metrics && Number.isFinite(metrics.avgCtxVoluntary)
               ? `${metrics.avgCtxVoluntary.toFixed(1)} / ${metrics.avgCtxInvoluntary.toFixed(1)}`
               : '--'}
           </p>
-          <p className="text-[10px] text-slate-500">Voluntarios / Invol.</p>
+          <p className="text-[10px] text-slate-500">{t('analysis.metrics.contextNote')}</p>
         </div>
         <div>
-          <p className="text-xs uppercase text-slate-400">Throughput (jobs/min)</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.throughput')}</p>
           <p className="text-2xl font-bold text-white">{metrics && Number.isFinite(metrics.throughputPerMinute) ? metrics.throughputPerMinute.toFixed(2) : '--'}</p>
-          <p className="text-[10px] text-slate-500">Tiempo total: {metrics ? (metrics.totalElapsedMs / 1000).toFixed(1) : '--'} s</p>
+          <p className="text-[10px] text-slate-500">
+            {t('analysis.metrics.throughputNote', { value: metrics ? (metrics.totalElapsedMs / 1000).toFixed(1) : '--' })}
+          </p>
         </div>
         <div className="sm:col-span-2">
-          <p className="text-xs uppercase text-slate-400">Residual promedio</p>
+          <p className="text-xs uppercase text-slate-400">{t('analysis.metrics.residual')}</p>
           <p className="text-2xl font-bold text-white">{metrics && Number.isFinite(metrics.avgResidual) ? metrics.avgResidual.toExponential(3) : '--'}</p>
           <p className="text-[10px] text-slate-500">
-            IO Δ: {metrics && Number.isFinite(metrics.avgIoReadBytes) ? `${(metrics.avgIoReadBytes / 1024).toFixed(1)} KB` : '--'} /
-            {metrics && Number.isFinite(metrics.avgIoWriteBytes) ? ` ${(metrics.avgIoWriteBytes / 1024).toFixed(1)} KB` : ''}
+            {t('analysis.metrics.ioDelta')}:{' '}
+            {metrics && Number.isFinite(metrics.avgIoReadBytes)
+              ? t('analysis.metrics.ioDetail', {
+                  read: (metrics.avgIoReadBytes / 1024).toFixed(1),
+                  write: (metrics.avgIoWriteBytes / 1024).toFixed(1)
+                })
+              : '--'}
           </p>
         </div>
       </section>
@@ -192,15 +225,15 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
       <section className="card space-y-4">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Promedio por metodo</h2>
-            <p className="text-xs text-slate-400">Tiempos normalizados a milisegundos.</p>
+            <h2 className="text-lg font-semibold text-white">{t('analysis.chart.methodTitle')}</h2>
+            <p className="text-xs text-slate-400">{t('analysis.chart.methodSubtitle')}</p>
           </div>
           <select
             className="rounded-full border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
             value={selectedScenario}
             onChange={(event) => setSelectedScenario(event.target.value)}
           >
-            <option value="all">Todos los escenarios</option>
+            <option value="all">{t('analysis.filter.all')}</option>
             {Array.from(new Set(rows.map((row) => row.scenario))).map((scenario) => (
               <option key={scenario} value={scenario}>
                 {scenarioLabels[scenario] ?? scenario}
@@ -224,7 +257,7 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
 
       <section className="card space-y-4">
         <header>
-          <h2 className="text-lg font-semibold text-white">Evolucion temporal</h2>
+          <h2 className="text-lg font-semibold text-white">{t('analysis.chart.evolutionTitle')}</h2>
         </header>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
@@ -242,26 +275,26 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
 
       <section className="card">
         <header className="mb-4">
-          <h2 className="text-lg font-semibold text-white">Historial de ejecuciones</h2>
+          <h2 className="text-lg font-semibold text-white">{t('analysis.table.title')}</h2>
         </header>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-xs text-slate-200">
             <thead className="text-slate-400">
               <tr className="border-b border-slate-700">
-                <th className="px-3 py-2">Timestamp</th>
-                <th className="px-3 py-2">Scheduler</th>
-                <th className="px-3 py-2">Metodo</th>
-                <th className="px-3 py-2">Escenario</th>
-                <th className="px-3 py-2">Elapsed ms</th>
-                <th className="px-3 py-2">CPU %</th>
-                <th className="px-3 py-2">Mem MB</th>
-                <th className="px-3 py-2">Espera ms</th>
-                <th className="px-3 py-2">Turnaround ms</th>
-                <th className="px-3 py-2">Ctx Vol</th>
-                <th className="px-3 py-2">Ctx Invol</th>
-                <th className="px-3 py-2">IO Read (KB)</th>
-                <th className="px-3 py-2">IO Write (KB)</th>
-                <th className="px-3 py-2">Residual</th>
+                <th className="px-3 py-2">{t('analysis.table.timestamp')}</th>
+                <th className="px-3 py-2">{t('analysis.table.scheduler')}</th>
+                <th className="px-3 py-2">{t('analysis.table.method')}</th>
+                <th className="px-3 py-2">{t('analysis.table.scenario')}</th>
+                <th className="px-3 py-2">{t('analysis.table.elapsed')}</th>
+                <th className="px-3 py-2">{t('analysis.table.cpu')}</th>
+                <th className="px-3 py-2">{t('analysis.table.mem')}</th>
+                <th className="px-3 py-2">{t('analysis.table.wait')}</th>
+                <th className="px-3 py-2">{t('analysis.table.turnaround')}</th>
+                <th className="px-3 py-2">{t('analysis.table.ctxVol')}</th>
+                <th className="px-3 py-2">{t('analysis.table.ctxInvol')}</th>
+                <th className="px-3 py-2">{t('analysis.table.ioRead')}</th>
+                <th className="px-3 py-2">{t('analysis.table.ioWrite')}</th>
+                <th className="px-3 py-2">{t('analysis.table.residual')}</th>
               </tr>
             </thead>
             <tbody>
@@ -290,7 +323,7 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
             </tbody>
           </table>
           {filteredRows.length === 0 && (
-            <p className="py-6 text-center text-sm text-slate-400">Aun no hay ejecuciones registradas.</p>
+            <p className="py-6 text-center text-sm text-slate-400">{t('analysis.empty')}</p>
           )}
         </div>
       </section>
@@ -298,8 +331,8 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
       {schedulerSummary.length > 0 && (
         <section className="card space-y-4">
           <header>
-            <h2 className="text-lg font-semibold text-white">Planificador vs rendimiento</h2>
-            <p className="text-xs text-slate-400">Comparación de tiempo medio y throughput para cada algoritmo.</p>
+            <h2 className="text-lg font-semibold text-white">{t('analysis.scheduler.title')}</h2>
+            <p className="text-xs text-slate-400">{t('analysis.scheduler.subtitle')}</p>
           </header>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -321,15 +354,15 @@ export function AnalysisView({ onError }: AnalysisViewProps) {
             <table className="min-w-full text-left text-xs text-slate-200">
               <thead className="text-slate-400">
                 <tr className="border-b border-slate-700">
-                  <th className="px-3 py-2">Planificador</th>
-                  <th className="px-3 py-2">Jobs</th>
-                  <th className="px-3 py-2">Tiempo promedio (ms)</th>
-                  <th className="px-3 py-2">Espera promedio (ms)</th>
-                  <th className="px-3 py-2">Turnaround promedio (ms)</th>
-                  <th className="px-3 py-2">Residual promedio</th>
-                  <th className="px-3 py-2">Ctx Vol / Invol</th>
-                  <th className="px-3 py-2">IO Read/Write (KB)</th>
-                  <th className="px-3 py-2">Throughput (jobs/min)</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.scheduler')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.jobs')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.avgTime')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.avgWait')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.avgTurnaround')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.avgResidual')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.ctx')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.io')}</th>
+                  <th className="px-3 py-2">{t('analysis.scheduler.table.throughput')}</th>
                 </tr>
               </thead>
               <tbody>

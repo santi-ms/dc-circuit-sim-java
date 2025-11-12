@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { StatusBadge } from './StatusBadge'
 import type { EquationVerification } from '../api'
+import { useI18n } from '../i18n'
 
 type ResultCardProps = {
   method: string
@@ -34,6 +35,7 @@ export function ResultCard({
   equations,
   state
 }: ResultCardProps) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
   const label = methodNames[method] ?? method
   const scenarioDisplay = scenario ? scenario.split('-')[0] : undefined
@@ -49,7 +51,7 @@ export function ResultCard({
     }
     const magnitude = Math.abs(value)
     const arrow = value >= 0 ? '→' : '←'
-    const description = value >= 0 ? 'sentido asumido' : 'sentido inverso'
+    const description = value >= 0 ? t('result.current.assumed') : t('result.current.reverse')
     return (
       <span key={index} className="rounded-full bg-slate-800/80 px-3 py-1 text-xs text-slate-200">
         I{index + 1}: {magnitude.toFixed(3)} A {arrow}{' '}
@@ -67,10 +69,18 @@ export function ResultCard({
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-base font-semibold text-white">{label}</h3>
-          <p className="text-xs uppercase tracking-wide text-slate-400">Resolucion Ax = b</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">{t('result.resolution')}</p>
           <div className="space-y-1 text-xs text-slate-500">
-            {scenarioDisplay && <p>Escenario: {scenarioDisplay}</p>}
-            {scheduler && <p>Planificador: {scheduler.toUpperCase()}</p>}
+            {scenarioDisplay && (
+              <p>
+                {t('result.scenario')}: {scenarioDisplay}
+              </p>
+            )}
+            {scheduler && (
+              <p>
+                {t('result.scheduler')}: {scheduler.toUpperCase()}
+              </p>
+            )}
           </div>
         </div>
         <StatusBadge state={state} />
@@ -81,16 +91,22 @@ export function ResultCard({
           {elapsedMs != null ? `${elapsedMs.toFixed(2)} ms` : '...'}
         </span>
         <span className="text-xs text-slate-400">
-          Residual: {residual != null && !Number.isNaN(residual) ? residual.toExponential(3) : '—'}
+          {t('result.residual')}: {residual != null && !Number.isNaN(residual) ? residual.toExponential(3) : '—'}
         </span>
         {typeof scheduler !== 'undefined' && (
-          <span className="text-xs text-slate-400 uppercase">Sched: {scheduler}</span>
+          <span className="text-xs text-slate-400 uppercase">
+            {t('result.scheduler')}: {scheduler.toUpperCase()}
+          </span>
         )}
         {typeof waitingMs === 'number' && !Number.isNaN(waitingMs) && (
-          <span className="text-xs text-slate-400">Wait: {waitingMs.toFixed(2)} ms</span>
+          <span className="text-xs text-slate-400">
+            {t('result.wait')}: {waitingMs.toFixed(2)} ms
+          </span>
         )}
         {typeof turnaroundMs === 'number' && !Number.isNaN(turnaroundMs) && (
-          <span className="text-xs text-slate-400">Turnaround: {turnaroundMs.toFixed(2)} ms</span>
+          <span className="text-xs text-slate-400">
+            {t('result.turnaround')}: {turnaroundMs.toFixed(2)} ms
+          </span>
         )}
         <button
           type="button"
@@ -98,7 +114,7 @@ export function ResultCard({
           onClick={() => setExpanded((prev) => !prev)}
           disabled={!hasEquations && (!vector || vector.length === 0)}
         >
-          {expanded ? 'Ocultar detalles' : 'Ver detalles'}
+          {expanded ? t('result.hideDetails') : t('result.viewDetails')}
         </button>
       </div>
 

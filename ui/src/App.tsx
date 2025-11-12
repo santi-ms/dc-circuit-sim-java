@@ -9,6 +9,7 @@ import { CircuitDiagram } from './components/CircuitDiagram'
 import { AnalysisView } from './components/AnalysisView'
 import { solve, SolveResponse, SolveResult, PhysicalSolvePayload, EquationVerification } from './api'
 import { connectWS } from './ws'
+import { useI18n, translateTopology, Language } from './i18n'
 
 const METHODS = ['cramer', 'gauss-jordan', 'library'] as const
 
@@ -33,6 +34,13 @@ type Toast = {
 
 type PhysicalConfig = Pick<PhysicalSolvePayload, 'topology' | 'voltage' | 'resistances' | 'name'>
 
+type StatusKey = 'ready' | 'running' | 'completed' | 'error' | 'customReady' | 'state'
+
+type StatusMeta = {
+  state?: 'running' | 'done' | 'idle'
+  scheduler?: string
+}
+
 function parseEquations(value: unknown): EquationVerification[] | undefined {
   if (!Array.isArray(value)) return undefined
   const mapped = value
@@ -54,11 +62,16 @@ function parseEquations(value: unknown): EquationVerification[] | undefined {
 
 function useLocalStorage(key: string, initial: string) {
   const [value, setValue] = useState(() => {
+    if (typeof window === 'undefined') {
+      return initial
+    }
     return window.localStorage.getItem(key) ?? initial
   })
 
   useEffect(() => {
-    window.localStorage.setItem(key, value)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(key, value)
+    }
   }, [value, key])
 
   return [value, setValue] as const
@@ -87,6 +100,7 @@ function HomeView({
   methods: Record<MethodKey, MethodState>
   physicalConfig: PhysicalConfig | null
 }) {
+  const { t } = useI18n()
   const currentSolution = METHODS.map((method) => methods[method]).find(
     (state) => state.state === 'done' && state.vector && state.vector.length > 0
   )
@@ -123,7 +137,7 @@ function HomeView({
       {physicalConfig && currentSolution && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-emerald-200">
-            Diagrama del circuito ({physicalConfig.topology})
+            {t('home.diagram.title', { topology: translateTopology(physicalConfig.topology, t) })}
           </h3>
           <CircuitDiagram
             topology={physicalConfig.topology}
@@ -140,6 +154,7 @@ function HomeView({
 export default function App() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { t, lang, setLang } = useI18n()
 
   const [scheduler, setScheduler] = useLocalStorage('dc-scheduler', 'fcfs')
   const [scenario, setScenario] = useLocalStorage('dc-scenario', 'simple')
@@ -150,7 +165,7 @@ export default function App() {
     }, {} as Record<MethodKey, MethodState>)
   )
   const [isRunning, setIsRunning] = useState(false)
-  const [status, setStatus] = useState<string>('Listo para simular')
+  const [statusState, setStatusState] = useState<{ key: StatusKey; meta?: StatusMeta }>({ key: 'ready' })
   const [showCustom, setShowCustom] = useState(false)
   const [showPhysical, setShowPhysical] = useState(false)
   const [physicalConfig, setPhysicalConfig] = useState<PhysicalConfig | null>(null)
@@ -204,20 +219,20 @@ export default function App() {
 
   const runSimulation = useCallback(async () => {
     setIsRunning(true)
-    setStatus('Ejecutando simulacion...')
+    setStatusState({ key: 'running' })
     setPhysicalConfig(null)
     resetMethods()
     try {
       const response = await solve(scheduler, scenario)
       applyResults(response.results)
-      setStatus('Simulacion completada')
+      setStatusState({ key: 'completed' })
     } catch (error) {
-      pushToast(error instanceof Error ? error.message : 'Error al ejecutar simulacion')
-      setStatus('Error en simulacion')
+      pushToast(error instanceof Error ? error.message : t('status.error'))
+      setStatusState({ key: 'error' })
     } finally {
       setIsRunning(false)
     }
-  }, [scheduler, scenario, applyResults, resetMethods, pushToast])
+  }, [scheduler, scenario, applyResults, resetMethods, pushToast, t])
 
   useEffect(() => {
     const socket = connectWS()
@@ -228,7 +243,13 @@ export default function App() {
         if (payload.type === 'status') {
           const state = payload.state as string
           const schedulerName = payload.scheduler as string
-          setStatus(`Estado: ${state} (${schedulerName})`)
+          setStatusState({
+            key: 'state',
+            meta: {
+              state: state === 'running' || state === 'done' ? state : 'idle',
+              scheduler: schedulerName
+            }
+          })
           setIsRunning(state === 'running')
         }
         if (payload.type === 'result') {
@@ -240,14 +261,20 @@ export default function App() {
                 elapsedMs: Number(payload.elapsedMs),
                 vector: (payload.x as number[]) ?? [],
                 residual: typeof payload.residual === 'number' ? payload.residual : Number(payload.residual ?? NaN),
-                scenario: typeof payload.scenario === 'string'
-                  ? (payload.scenario as string).split('-')[0]
-                  : prev[method as MethodKey]?.scenario,
-                scheduler: typeof payload.scheduler === 'string'
-                  ? (payload.scheduler as string)
-                  : prev[method as MethodKey]?.scheduler,
-                waitingMs: typeof payload.waitingMs === 'number' ? payload.waitingMs : Number(payload.waitingMs ?? NaN),
-                turnaroundMs: typeof payload.turnaroundMs === 'number' ? payload.turnaroundMs : Number(payload.turnaroundMs ?? NaN),
+                scenario:
+                  typeof payload.scenario === 'string'
+                    ? (payload.scenario as string).split('-')[0]
+                    : prev[method as MethodKey]?.scenario,
+                scheduler:
+                  typeof payload.scheduler === 'string' ? (payload.scheduler as string) : prev[method as MethodKey]?.scheduler,
+                waitingMs:
+                  typeof payload.waitingMs === 'number'
+                    ? payload.waitingMs
+                    : Number(payload.waitingMs ?? NaN),
+                turnaroundMs:
+                  typeof payload.turnaroundMs === 'number'
+                    ? payload.turnaroundMs
+                    : Number(payload.turnaroundMs ?? NaN),
                 equations: parseEquations(payload.equations) ?? prev[method as MethodKey]?.equations,
                 state: 'done'
               }
@@ -292,7 +319,7 @@ export default function App() {
     (response: SolveResponse, customScheduler: string, config?: PhysicalConfig) => {
       setScheduler(customScheduler)
       applyResults(response.results)
-      setStatus('Resultado personalizado listo')
+      setStatusState({ key: 'customReady' })
       setIsRunning(false)
       setPhysicalConfig(config ?? null)
     },
@@ -330,30 +357,75 @@ export default function App() {
 
   const isAnalysisRoute = location.pathname === '/analysis'
 
+  const statusText = useMemo(() => {
+    switch (statusState.key) {
+      case 'ready':
+        return t('status.ready')
+      case 'running':
+        return t('status.running')
+      case 'completed':
+        return t('status.completed')
+      case 'error':
+        return t('status.error')
+      case 'customReady':
+        return t('status.customReady')
+      case 'state': {
+        const state =
+          statusState.meta?.state === 'running' || statusState.meta?.state === 'done'
+            ? statusState.meta.state
+            : 'idle'
+        const schedulerName = statusState.meta?.scheduler ?? '--'
+        return t('status.state', {
+          state: t(`status.state.${state}` as any),
+          scheduler: schedulerName
+        })
+      }
+      default:
+        return t('status.ready')
+    }
+  }, [statusState, t])
+
+  const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setLang(event.target.value as Language)
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 px-4 pb-16">
       <nav className="mx-auto flex max-w-3xl items-center justify-between py-6">
         <Link to="/" className="text-lg font-semibold text-emerald-300">
           DC Circuit Sim
         </Link>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <select
+            value={lang}
+            onChange={handleLanguageChange}
+            className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200"
+            aria-label={t('language.switch')}
+          >
+            <option value="es">{t('language.es')}</option>
+            <option value="pt">{t('language.pt')}</option>
+          </select>
           <button
-            className={`rounded-full px-4 py-2 text-sm transition ${!isAnalysisRoute ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}
+            className={`rounded-full px-4 py-2 text-sm transition ${
+              !isAnalysisRoute ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'
+            }`}
             onClick={() => navigate('/')}
           >
-            Simulacion
+            {t('nav.simulation')}
           </button>
           <button
-            className={`rounded-full px-4 py-2 text-sm transition ${isAnalysisRoute ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`}
+            className={`rounded-full px-4 py-2 text-sm transition ${
+              isAnalysisRoute ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-300 hover:text-white'
+            }`}
             onClick={() => navigate('/analysis')}
           >
-            Analisis
+            {t('nav.analysis')}
           </button>
         </div>
       </nav>
 
       <main className="mx-auto w-full max-w-3xl space-y-6">
-        <p className="text-sm text-slate-400">{status}</p>
+        <p className="text-sm text-slate-400">{statusText}</p>
         <Routes>
           <Route
             path="/"
@@ -376,16 +448,8 @@ export default function App() {
         </Routes>
       </main>
 
-      <CustomSolve
-        open={showCustom}
-        onClose={() => setShowCustom(false)}
-        onSuccess={handleCustomSuccess}
-      />
-      <PhysicalSolve
-        open={showPhysical}
-        onClose={() => setShowPhysical(false)}
-        onSuccess={handleCustomSuccess}
-      />
+      <CustomSolve open={showCustom} onClose={() => setShowCustom(false)} onSuccess={handleCustomSuccess} />
+      <PhysicalSolve open={showPhysical} onClose={() => setShowPhysical(false)} onSuccess={handleCustomSuccess} />
       {toastElements}
     </div>
   )

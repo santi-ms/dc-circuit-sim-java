@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { solvePhysical, SolveResponse, PhysicalSolvePayload } from '../api'
+import { useI18n, translateTopology } from '../i18n'
 
 const schedulers = [
   { value: 'fcfs', label: 'FCFS' },
@@ -24,6 +25,7 @@ type PhysicalSolveProps = {
 }
 
 export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) {
+  const { t } = useI18n()
   const [scheduler, setScheduler] = useState('fcfs')
   const [topology, setTopology] = useState<'serie' | 'paralelo'>('serie')
   const [voltage, setVoltage] = useState('12')
@@ -45,12 +47,12 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
         .filter((value) => !Number.isNaN(value) && value > 0)
 
       if (resistances.length === 0) {
-        throw new Error('Ingrese resistencias válidas (positivas) separadas por coma')
+        throw new Error(t('physicalSolve.error.resistances'))
       }
 
       const voltageValue = Number(voltage)
       if (Number.isNaN(voltageValue) || voltageValue === 0) {
-        throw new Error('Ingrese un voltaje distinto de cero')
+        throw new Error(t('physicalSolve.error.voltage'))
       }
 
       setLoading(true)
@@ -69,7 +71,7 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
       })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error inesperado')
+      setError(err instanceof Error ? err.message : t('error.unexpected'))
     } finally {
       setLoading(false)
     }
@@ -84,20 +86,18 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
       >
         <header className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-emerald-200">Circuito físico (serie/paralelo)</h2>
-            <p className="text-sm text-slate-400">
-              Define la topología, el voltaje y las resistencias para generar la matriz Ax = b automáticamente.
-            </p>
+            <h2 className="text-lg font-semibold text-emerald-200">{t('physicalSolve.title')}</h2>
+            <p className="text-sm text-slate-400">{t('physicalSolve.subtitle')}</p>
           </div>
           <button className="text-slate-400 hover:text-white" onClick={onClose}>
-            Cerrar
+            {t('customSolve.close')}
           </button>
         </header>
 
         <div className="mt-4 flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm">
-              <span>Planificador</span>
+              <span>{t('physicalSolve.scheduler')}</span>
               <select
                 className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white"
                 value={scheduler}
@@ -112,7 +112,7 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
             </label>
 
             <label className="flex flex-col gap-2 text-sm">
-              <span>Topología</span>
+              <span>{t('physicalSolve.topology')}</span>
               <select
                 className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white"
                 value={topology}
@@ -128,7 +128,7 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
           </div>
 
           <label className="flex flex-col gap-2 text-sm">
-            <span>Nombre (opcional)</span>
+            <span>{t('physicalSolve.name')}</span>
             <input
               className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white"
               value={name}
@@ -138,7 +138,7 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
           </label>
 
           <label className="flex flex-col gap-2 text-sm">
-            <span>Voltaje de la fuente (V)</span>
+            <span>{t('physicalSolve.voltage')}</span>
             <input
               type="number"
               className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white"
@@ -148,7 +148,7 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
           </label>
 
           <label className="flex flex-col gap-2 text-sm">
-            <span>Resistencias (Ohm) separadas por coma</span>
+            <span>{t('physicalSolve.resistances')}</span>
             <input
               className="rounded-xl border border-slate-600 bg-slate-900 px-3 py-2 text-white"
               value={resistancesText}
@@ -158,19 +158,17 @@ export function PhysicalSolve({ open, onClose, onSuccess }: PhysicalSolveProps) 
           </label>
 
           {topology === 'paralelo' && (
-            <p className="text-xs text-slate-400">
-              En paralelo, cada rama recibe el mismo voltaje y se calcula su corriente `I = V / R`.
-            </p>
+            <p className="text-xs text-slate-400">{t('physicalSolve.parallelHint')}</p>
           )}
 
           {error && <p className="rounded-xl bg-red-500/20 px-3 py-2 text-sm text-red-200">{error}</p>}
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button className="rounded-full px-4 py-2 text-sm text-slate-300 hover:text-white" onClick={onClose}>
-              Cancelar
+              {t('physicalSolve.cancel')}
             </button>
             <button className="button-primary" onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Generando…' : 'Resolver circuito físico'}
+              {loading ? t('physicalSolve.generating') : t('physicalSolve.submit')}
             </button>
           </div>
         </div>
