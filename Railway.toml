@@ -3,4 +3,4 @@ builder = "NIXPACKS"
 buildCommand = "./gradlew clean build -x test"
 
 [deploy]
-startCommand = "java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls build/libs/*-*.jar | head -n 1)"
+startCommand = "java -Dserver.port=$PORT -jar $(ls build/libs/*[!plain].jar | head -n 1)"
