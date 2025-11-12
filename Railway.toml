@@ -1,10 +1,9 @@
 [build]
-builder = "paketobuildpacks/builder:base"
-buildCommand = "./gradlew clean build -x test"
+builder = "NIXPACKS"
+buildCommand = "chmod +x gradlew && ./gradlew wrapper --gradle-version 8.7 && ./gradlew clean build -x test"
 
 [start]
 command = "java -Dserver.port=$PORT -jar build/libs/*.jar"
 
 [variables]
 JAVA_VERSION = "21"
-GRADLE_OPTS = "-Dorg.gradle.daemon=false"
