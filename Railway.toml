@@ -1,5 +1,4 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "./gradlew clean build -x test"
-startCommand = "java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls build/libs/*-*.jar | head -n 1)"
-root = "dc-circuit-sim-java"
+buildCommand = "cd dc-circuit-sim-java && ./gradlew clean build -x test"
+startCommand = "cd dc-circuit-sim-java && java -Dserver.port=$PORT -jar $(ls build/libs/*-*.jar | head -n 1)"
