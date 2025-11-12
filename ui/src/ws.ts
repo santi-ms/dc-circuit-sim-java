@@ -1,11 +1,13 @@
-export function connectWS(): WebSocket {
-  const url = import.meta.env.DEV
-    ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
-    : (import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080/ws')
+export class WsClient {
+  private socket: WebSocket | null = null
+  private shouldReconnect = true
+  private listeners = new Set<Listener<WsPayload>>()
 
-  const socket = new WebSocket(url)
-  socket.onerror = (event) => {
-    console.error('WebSocket error', event)
+  connect() {
+    this.shouldReconnect = true
+    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      return
+    }
   }
-  return socket
 }
+
