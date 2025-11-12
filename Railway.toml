@@ -1,8 +1,10 @@
 [build]
-builder = "NIXPACKS"
+builder = "paketobuildpacks/builder:base"
 buildCommand = "./gradlew clean build -x test"
-startCommand = "java $JAVA_OPTS -Dserver.port=$PORT -jar $(ls build/libs/*.jar | head -n 1)"
-root = "dc-circuit-sim-java"
 
-[build.env]
-NIXPACKS_SKIP_MISE = "1"
+[start]
+command = "java -Dserver.port=$PORT -jar build/libs/*.jar"
+
+[variables]
+JAVA_VERSION = "21"
+GRADLE_OPTS = "-Dorg.gradle.daemon=false"
